@@ -22,6 +22,12 @@ tfidf = None
 
 dbutils = DBUtility()
 
+sn_list = list()
+
+aus_accounts = ["今日悉尼", "微悉尼", "澳洲微报", "悉尼印象", "Australia News", "澳洲中文台"]
+
+aus_articles = list()
+
 # jieba.load_userdict("user_dict.txt")
 
 # print ("Loading Stopwords...")
@@ -61,22 +67,23 @@ def Segmentation(articles_queue, segementations) :
 
 
 
-def Count_Keyword(segementations, num, lock, writelock, finish) :
+def Count_Keyword(num, lock, writelock, finish) :
 	global words
 	global tfidf
 	global dbutils
+	global sn_list
 
 	while True :
 		lock.acquire()
 		now = num.value
-		if now >= len(segementations) :
+		if now >= len(sn_list) - 1 :
 			finish.value += 1
 			break
 		num.value += 1
 		lock.release()
 
 
-		sn = segementations[now][0]
+		sn = sn_list[now]
 		weights = list(tfidf.getrow(now).toarray()[0])
 		words_weight = np.argsort(weights).flatten()[::-1]
 		top10_keywords = list(words[words_weight][:10])
@@ -137,17 +144,29 @@ if __name__ == '__main__':
 	# with open("segmentations.pickle", "wb+") as f :
 	# 	f.write(pickle.dumps(segementations))
 
+	articles = dbutils.GetArticles({})
+	for article in articles :
+		if article["account"] not in aus_accounts :
+			aus_articles.append(article["_id"])
 
 	with open("./segmentation.pickle", "rb") as f :
 		segementations = pickle.load(f)
 
-	contents = [" ".join(s[1]) for s in segementations]
+	contents = list()
+
+	for s in segementations :
+		if s[0] in aus_articles:
+			sn_list.append(s[0])
+			contents.append(" ".join(s[1]))
+	# contents = [" ".join(s[1]) if s[0] in aus_articles for s in segementations]
 
 	vectorizer = CountVectorizer()
 
 	transformer = TfidfTransformer()
 
 	tfidf = transformer.fit_transform(vectorizer.fit_transform(contents))
+
+	del segementations
 
 	del contents
 
@@ -158,12 +177,12 @@ if __name__ == '__main__':
 	sys.stdout.flush()
 
 	for _ in range(WORKERS) :
-		t = Process(target = Count_Keyword, args = (segementations, num, lock, writelock, finish))
+		t = Process(target = Count_Keyword, args = (num, lock, writelock, finish))
 		t.daemon = True
 		t.start()
 
 	while True :
-		percent = round(num.value/len(segementations)*100, 2)
+		percent = round(num.value/len(sn_list)*100, 2)
 		sys.stdout.write('\r')
 		sys.stdout.write ("Counting Top10 Keywords... {}%".format(percent))
 		sys.stdout.flush()

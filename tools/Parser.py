@@ -161,7 +161,7 @@ class Parser() :
 					"censor": 0
 				}
 
-				sn = dbutils.InsertArticle(data)
+				dbutils.InsertArticle(data)
 
 				print ("[PARSER] Insert Article: " + str(sn) + " To DB")
 
