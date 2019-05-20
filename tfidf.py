@@ -24,7 +24,7 @@ dbutils = DBUtility()
 
 sn_list = list()
 
-aus_accounts = ["今日悉尼", "微悉尼", "澳洲微报", "悉尼印象", "Australia News", "澳洲中文台"]
+aus_accounts = ["华人瞰世界", "今日悉尼", "微悉尼", "澳洲微报", "悉尼印象", "Australia News", "澳洲中文台"]
 
 aus_articles = list()
 
@@ -40,6 +40,8 @@ aus_articles = list()
 def Segmentation(articles_queue, segementations) :
 
 	global STOPWORDS
+	global dbutils
+
 
 	while True :
 		try :
@@ -64,7 +66,14 @@ def Segmentation(articles_queue, segementations) :
 				keyword.append(word)
 		
 		segementations.append((sn, " ".join(keyword)))
+		
 
+
+		data = {
+			"segs": keyword
+		}
+
+		dbutils.UpdateArticle(sn, data)
 
 
 def Count_Keyword(num, lock, writelock, finish) :
@@ -85,14 +94,14 @@ def Count_Keyword(num, lock, writelock, finish) :
 
 		sn = sn_list[now]
 		weights = list(tfidf.getrow(now).toarray()[0])
-		words_weight = np.argsort(weights).flatten()[::-1]
-		top10_keywords = list(words[words_weight][:10])
+		# words_weight = np.argsort(weights).flatten()[::-1]
+		# top10_keywords = list(words[words_weight][:10])
 		
 		writelock.acquire()
 
 		with open("output.csv", "a+", newline="", encoding = "utf-8-sig") as csvfile :
 			writer = csv.writer(csvfile)
-			writer.writerow([sn, str(top10_keywords)])
+			writer.writerow([sn, str(weights)])
 
 		writelock.release()
 
@@ -112,7 +121,7 @@ if __name__ == '__main__':
 	manager = Manager()
 	num = Value("i", 0)
 	finish = Value("i", 0)
-	# segementations = manager.list()
+	segementations = manager.list()
 
 	# articles = dbutils.GetArticles({})
 
@@ -143,22 +152,20 @@ if __name__ == '__main__':
 
 	# with open("segmentations.pickle", "wb+") as f :
 	# 	f.write(pickle.dumps(segementations))
-
+	contents = list()
 	articles = dbutils.GetArticles({})
 	for article in articles :
+		dt_list = article["time"].split("-")
+		dt = date(int(dt_list[0]), int(dt_list[1]), int(dt_list[2]))
+		bound = date(2019, 3, 31)
+		if dt > bound :
+			continue
 		if article["account"] not in aus_accounts :
-			aus_articles.append(article["_id"])
+			sn_list.append(article["_id"])
+			contents.append(" ".join(article["segs"]))
 
-	with open("./segmentation.pickle", "rb") as f :
-		segementations = pickle.load(f)
-
-	contents = list()
-
-	for s in segementations :
-		if s[0] in aus_articles:
-			sn_list.append(s[0])
-			contents.append(" ".join(s[1]))
-	# contents = [" ".join(s[1]) if s[0] in aus_articles for s in segementations]
+	# with open("./segmentation.pickle", "rb") as f :
+	# 	segementations = pickle.load(f)
 
 	vectorizer = CountVectorizer()
 
@@ -170,7 +177,7 @@ if __name__ == '__main__':
 
 	del contents
 
-	words = np.array(vectorizer.get_feature_names())
+	# words = np.array(vectorizer.get_feature_names())
 
 	sys.stdout.write('\r')
 	sys.stdout.write("Counting Top10 Keywords... 0%")
