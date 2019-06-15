@@ -11,7 +11,7 @@ dbutils = DBUtility()
 stpwrdpath = "stop_word_all.txt"
 STOPWORDS = list()
 
-aus_accounts = ["今日悉尼", "微悉尼", "澳洲微报", "悉尼印象", "Australia News", "澳洲中文台"]
+aus_accounts = ["华人瞰世界", "今日悉尼", "微悉尼", "澳洲微报", "悉尼印象", "Australia News", "澳洲中文台"]
 aus_articles = list()
 
 with open(stpwrdpath, 'r', encoding = "utf-8-sig") as stopwords :
