@@ -8,24 +8,11 @@ import xlrd
 from datetime import date
 import configparser
 import traceback
+import pandas as pd
 
-myWorkbook = xlrd.open_workbook('wechatacc.xlsx')
-mySheets = myWorkbook.sheets()
-mySheet = mySheets[0]
 
-nrows = mySheet.nrows
-ncols = mySheet.ncols
+df = pd.read_excel("account.xlsx")
 
-category = dict()
-for i in range(nrows) :
-	temp = []
-	for j in range(ncols) :
-		myCell = mySheet.cell(i, j)
-		myCellValue = myCell.value 
-		if j == 1 :
-			myCellValue = int(myCellValue)
-		temp.append(myCellValue)
-	category.update({temp[0] : temp[1]})
 
 dbutils = DBUtility()
 
@@ -147,6 +134,7 @@ class Parser() :
 				account = account.strip().rstrip()
 				title = title.strip().rstrip()
 				content = content.strip()
+				category = df.loc[df["account"] == account]
 				data = {
 					"_id": sn,
 					"url": url,
@@ -155,7 +143,10 @@ class Parser() :
 					"account": account,
 					"title": title,
 					"content": content,
-					"class": category[account],
+					"state": str(category.iloc[0]["state"]),
+					"official": str(category.iloc[0]["official"]),
+					"license": str(category.iloc[0]["license"]),
+					"forprofit": str(category.iloc[0]["forprofit"]),
 					"tfidf": "",
 					"NER": "",
 					"censor": 0
