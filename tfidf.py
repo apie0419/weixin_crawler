@@ -19,9 +19,9 @@ from matplotlib.ticker import PercentFormatter
 
 GET_KEYWORDS = True
 
-start = date(2019, 6, 9)
+start = date(2019, 8, 6)
 
-end = date(2019, 8, 5)
+end = date(2019, 8, 14)
 
 wanted_word = "香港"
 
@@ -118,9 +118,9 @@ def Calculate_Sim(num, lock, writelock, finish) :
 
 		if GET_KEYWORDS:
 
-			for i in range(len(contents)):
-				if wanted_word in contents[i]:
-					keywords_ids.append(id_list[i])
+			for article in articles:
+				if wanted_word in article["content"]:
+					keywords_ids.append(article["_id"])
 
 		results = list()
 		keywords_results = list()
