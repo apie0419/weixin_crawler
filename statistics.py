@@ -1,29 +1,26 @@
-import jieba
-from multiprocessing import Queue, Process, Lock, Manager, Value, cpu_count
-from sklearn.feature_extraction.text import TfidfTransformer  
-from sklearn.feature_extraction.text import CountVectorizer
-from utility.DBUtility import DBUtility
-import sys
-import time
-import re
-import numpy as np
-import pandas as pd
-from datetime import date, timedelta
-import pickle
-import csv
+from datetime                        import date, timedelta
+from Sentiment                       import get_sentiment
+from multiprocessing                 import Queue, Process, Lock, Manager, Value, cpu_count
+from utility.DBUtility               import DBUtility
+from matplotlib.ticker               import PercentFormatter
+from sklearn.feature_extraction.text import TfidfTransformer, CountVectorizer
+import numpy             as np
+import pandas            as pd
 import matplotlib.pyplot as plt
-from matplotlib.ticker import PercentFormatter
+import sys, jieba, time, re, csv, os
 
 
 ### Setting
 
 GET_KEYWORDS = True
 
-start = date(2019, 8, 6)
+start = date(2019, 6, 9)
 
-end = date(2019, 8, 14)
+end = date(2019, 8, 5)
 
 wanted_word = "香港"
+
+export_dir = "Outputs"
 
 ###
 
@@ -118,9 +115,9 @@ def Calculate_Sim(num, lock, writelock, finish) :
 
 		if GET_KEYWORDS:
 
-			for article in articles:
-				if wanted_word in article["content"]:
-					keywords_ids.append(article["_id"])
+			for i in range(len(contents)):
+				if wanted_word in contents[i]:
+					keywords_ids.append(id_list[i])
 
 		results = list()
 		keywords_results = list()
@@ -171,7 +168,7 @@ def Statistic(df, filename):
 			results.append([now, total, len(over_03.index), str(len(over_03.index)/total)])
 
 
-	with open(filename + ".csv", "w+", encoding = "utf-8-sig", newline = "") as f :
+	with open(export_dir + "/" + filename + ".csv", "w+", encoding = "utf-8-sig", newline = "") as f :
 		writer = csv.writer(f)
 		writer.writerow(["Date", "Total", "Over_0.3", "Over_0.3/Total"])
 		for res in results:
@@ -201,7 +198,7 @@ def Statistic(df, filename):
 
 	plt.subplots_adjust(left=0.3)
 
-	plt.savefig(filename + ".png")
+	plt.savefig(export_dir + "/" + filename + ".png")
 
 
 
@@ -214,6 +211,9 @@ if __name__ == '__main__':
 	num = Value("i", 0)
 	finish = Value("i", 0)
 	segementations = Value("i", 0)
+
+	if not os.path.exists(export_dir):
+		os.mkdir(export_dir)
 
 	days = (end - start).days
 
@@ -271,10 +271,15 @@ if __name__ == '__main__':
 
 	df = pd.read_csv("output.csv", names = ["sims", "date", "article1", "article2"])
 
-	Statistic(df, "statistic")
+	Statistic(df, str(start) + "~" + str(end) + "_statistic")
 
 	if GET_KEYWORDS:
 
 		df_keyword = pd.read_csv("keywords_output.csv", names = ["sims", "date", "article1", "article2"])
 
-		Statistic(df_keyword, "statistic_keyword")
+		Statistic(df_keyword, str(start) + "~" + str(end) + "_statistic_keyword")
+
+	get_sentiment(start, end)
+
+	os.remove("output.csv")
+	os.remove("keywords_output.csv")
