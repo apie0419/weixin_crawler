@@ -7,7 +7,7 @@ import pandas as pd
 import jieba, re
 
 
-dbutils = DBUtility()
+export_dir = "Outputs"
 
 # Dict functions
 
@@ -87,7 +87,7 @@ def count_generator(counts):
     return sum(counts.values())
 
 # Load Dict
-def get_sentiment(start, end):
+def get_sentiment(start, end, wanted_word, dbutils):
     sent_dict = pd.read_csv('sent_dicts.csv', error_bad_lines=False)
     sent_dict['convert'] = sent_dict[' 极性'].apply(convert_polar_sentiment)
     sent_dict['sent_scores'] = sent_dict.apply(sent_scores, axis=1)
@@ -106,6 +106,8 @@ def get_sentiment(start, end):
     days = (end - start).days
 
     all_articles = list()
+    keyword_ids = list()
+
 
     for i in range(days+1):
         now = start + timedelta(days = i)
@@ -113,6 +115,8 @@ def get_sentiment(start, end):
         for article in articles:
             if article["account"] not in aus_accounts:
                 all_articles.append(article)
+                if wanted_word in article["content"]:
+                    keyword_ids.append(article["_id"])
 
     hr_cut = pd.DataFrame(all_articles)
 
@@ -127,8 +131,6 @@ def get_sentiment(start, end):
 
     hr_columns = hr_cut['sent_freq'].apply(pd.Series)
 
-    print(hr_columns.head())
-
     pos_terms = ['PH', 'PE', 'PG', 'PB', 'PK', 'PC', 'PF', 'PA', 'PD']
     neg_terms = ['NK', 'NN', 'NI', 'NA', 'NL', 'NC', 'NJ', 'NB', 'NE', 'ND', 'NH', 'NG']
 
@@ -141,8 +143,11 @@ def get_sentiment(start, end):
 
     hr_columns['sent_sum'] = hr_columns['pos_sum'] + hr_columns['neg_sum']
 
-    hr_final = hr_cut[['_id', 'content']].join(hr_columns)
+    hr_final = hr_cut[['_id', 'author', 'account','content', 'time', 'official', 'license', 'forprofit']].join(hr_columns)
 
     print('Work done... Saving...')
 
-    hr_final.to_csv(str(start) + "~" + str(end) + '_sentiment.csv', index=0)
+    hr_final.set_index("_id", inplace = True)
+    hr_final.to_csv(export_dir + "/" + str(start) + "~" + str(end) + '_sentiment.csv', index=0)
+    keyword_final = hr_final.loc[keyword_ids]
+    keyword_final.to_csv(export_dir + "/" + str(start) + "~" + str(end) + '_sentiment_keyword.csv', index=0)

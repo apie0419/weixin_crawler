@@ -14,9 +14,9 @@ import sys, jieba, time, re, csv, os
 
 GET_KEYWORDS = True
 
-start = date(2019, 6, 9)
+start = date(2019, 8, 31)
 
-end = date(2019, 8, 5)
+end = date(2019, 9, 7)
 
 wanted_word = "香港"
 
@@ -30,27 +30,16 @@ WORKERS = cpu_count()
 
 tfidf = None
 
-dbutils = DBUtility()
-
 sn_list = list()
 
 aus_accounts = ["华人瞰世界", "今日悉尼", "微悉尼", "澳洲微报", "悉尼印象", "Australia News", "澳洲中文台"]
 
 aus_articles = list()
 
-jieba.load_userdict("user_dict.txt")
 
-print ("Loading Stopwords...")
-
-with open('stop_word_all.txt','r', encoding='utf-8-sig') as stopword:
-	for word in stopword:
-		STOPWORDS.append(word.replace("\n", ""))
-
-
-def Segmentation(articles_queue, segementations, lock) :
+def Segmentation(articles_queue, segementations, lock, dbutils) :
 
 	global STOPWORDS
-	global dbutils
 
 
 	while True :
@@ -78,10 +67,9 @@ def Segmentation(articles_queue, segementations, lock) :
 		}
 		dbutils.UpdateArticle(sn, data)
 
-def Calculate_Sim(num, lock, writelock, finish) :
+def Calculate_Sim(num, lock, writelock, finish, dbutils) :
 	
 	global tfidf
-	global dbutils
 	global sn_list
 	global start
 	global end
@@ -100,10 +88,16 @@ def Calculate_Sim(num, lock, writelock, finish) :
 
 		contents = list()
 		id_list = list()
+		keywords_ids = list()
 
 		for article in articles:
 			contents.append(" ".join(article["segs"]))
 			id_list.append(article["_id"])
+
+			if GET_KEYWORDS:
+				if wanted_word in article["content"]:
+					keywords_ids.append(article["_id"])
+
 
 		vectorizer = CountVectorizer()
 
@@ -111,24 +105,17 @@ def Calculate_Sim(num, lock, writelock, finish) :
 
 		tfidf = transformer.fit_transform(vectorizer.fit_transform(contents))
 
-		keywords_ids = list()
-
-		if GET_KEYWORDS:
-
-			for i in range(len(contents)):
-				if wanted_word in contents[i]:
-					keywords_ids.append(id_list[i])
-
 		results = list()
 		keywords_results = list()
 
 		for i in range(tfidf.shape[0]):
 			weights = tfidf.getrow(i).toarray()[0]
 			for j in range(i + 1, tfidf.shape[0]):
+				w = np.dot(weights, tfidf.getrow(j).toarray()[0])
 				if id_list[j] in keywords_ids and id_list[i] in keywords_ids:
 					keywords_results.append([w, str(now), id_list[i], id_list[j]])
-				w = np.dot(weights, tfidf.getrow(j).toarray()[0])
 				results.append([w, str(now), id_list[i], id_list[j]])
+
 
 		writelock.acquire()
 
@@ -212,6 +199,16 @@ if __name__ == '__main__':
 	finish = Value("i", 0)
 	segementations = Value("i", 0)
 
+	dbutils = DBUtility()
+
+	jieba.load_userdict("user_dict.txt")
+
+	print ("Loading Stopwords...")
+
+	with open('stop_word_all.txt','r', encoding='utf-8-sig') as stopword:
+		for word in stopword:
+			STOPWORDS.append(word.replace("\n", ""))
+
 	if not os.path.exists(export_dir):
 		os.mkdir(export_dir)
 
@@ -230,7 +227,7 @@ if __name__ == '__main__':
 	sys.stdout.flush()
 
 	for _ in range(WORKERS) :
-		t = Process(target = Segmentation, args = (articles_queue, segementations, lock))
+		t = Process(target = Segmentation, args = (articles_queue, segementations, lock, dbutils))
 		t.daemon = True
 		t.start()
 
@@ -256,7 +253,7 @@ if __name__ == '__main__':
 	sys.stdout.flush()
 
 	for _ in range(WORKERS) :
-		t = Process(target = Calculate_Sim, args = (num, lock, writelock, finish))
+		t = Process(target = Calculate_Sim, args = (num, lock, writelock, finish, dbutils))
 		t.daemon = True
 		t.start()
 
@@ -279,7 +276,7 @@ if __name__ == '__main__':
 
 		Statistic(df_keyword, str(start) + "~" + str(end) + "_statistic_keyword")
 
-	get_sentiment(start, end)
+	get_sentiment(start, end, wanted_word, dbutils)
 
 	os.remove("output.csv")
 	os.remove("keywords_output.csv")
