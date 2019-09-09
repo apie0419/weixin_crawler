@@ -4,7 +4,7 @@ from sklearn           import preprocessing
 from utility.DBUtility import DBUtility
 from datetime          import date, timedelta
 import pandas as pd
-import jieba, re
+import jieba, re, os
 
 
 export_dir = "Outputs"
@@ -12,6 +12,8 @@ export_dir = "Outputs"
 # Dict functions
 
 aus_accounts = ["华人瞰世界", "今日悉尼", "微悉尼", "澳洲微报", "悉尼印象", "Australia News", "澳洲中文台"]
+
+base_path = os.path.dirname(os.path.abspath(__file__))
 
 def convert_polar_sentiment(polar):
     if polar == 2:
@@ -88,7 +90,8 @@ def count_generator(counts):
 
 # Load Dict
 def get_sentiment(start, end, wanted_word, dbutils):
-    sent_dict = pd.read_csv('sent_dicts.csv', error_bad_lines=False)
+
+    sent_dict = pd.read_csv(os.path.join(base_path, 'sent_dicts.csv'), error_bad_lines=False)
     sent_dict['convert'] = sent_dict[' 极性'].apply(convert_polar_sentiment)
     sent_dict['sent_scores'] = sent_dict.apply(sent_scores, axis=1)
     sent_dict[' 情感分类']=sent_dict[' 情感分类'].str.replace(" ","")
@@ -148,6 +151,6 @@ def get_sentiment(start, end, wanted_word, dbutils):
     print('Work done... Saving...')
 
     hr_final.set_index("_id", inplace = True)
-    hr_final.to_csv(export_dir + "/" + str(start) + "~" + str(end) + '_sentiment.csv', index=0)
+    hr_final.to_csv(os.path.join(base_path, export_dir + "/" + str(start) + "~" + str(end) + '_sentiment.csv'), index=0)
     keyword_final = hr_final.loc[keyword_ids]
-    keyword_final.to_csv(export_dir + "/" + str(start) + "~" + str(end) + '_sentiment_keyword.csv', index=0)
+    keyword_final.to_csv(os.path.join(base_path, export_dir + "/" + str(start) + "~" + str(end) + '_sentiment_keyword.csv'), index=0)

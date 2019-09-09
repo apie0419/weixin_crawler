@@ -1,12 +1,11 @@
 from pymongo import MongoClient
-import configparser
-import urllib
+import configparser, urllib, os
 
 
-
+base_path = os.path.dirname(os.path.abspath(__file__))
 config = configparser.ConfigParser()
 config.optionxform = str
-config.read('setting.conf', encoding='utf-8')
+config.read(os.path.join(base_path, '../setting.conf'), encoding='utf-8')
 
 ip          = config.get("MONGO", "IP")
 port        = config.get("MONGO", "PORT")

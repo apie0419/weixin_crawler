@@ -2,6 +2,7 @@ from datetime                        import date, timedelta
 from Sentiment                       import get_sentiment
 from multiprocessing                 import Queue, Process, Lock, Manager, Value, cpu_count
 from utility.DBUtility               import DBUtility
+from utility.Mail                    import Send_Mail
 from matplotlib.ticker               import PercentFormatter
 from sklearn.feature_extraction.text import TfidfTransformer, CountVectorizer
 import numpy             as np
@@ -14,13 +15,16 @@ import sys, jieba, time, re, csv, os
 
 GET_KEYWORDS = True
 
-start = date(2019, 8, 31)
-
-end = date(2019, 9, 7)
-
 wanted_word = "香港"
 
 export_dir = "Outputs"
+
+# start = date(2019, 8, 31)
+# end = date(2019, 9 ,5)
+
+start = date.today() - timedelta(days = 7)
+
+end = date.today() - timedelta(days = 1) 
 
 ###
 
@@ -35,6 +39,8 @@ sn_list = list()
 aus_accounts = ["华人瞰世界", "今日悉尼", "微悉尼", "澳洲微报", "悉尼印象", "Australia News", "澳洲中文台"]
 
 aus_articles = list()
+
+base_path = os.path.dirname(os.path.abspath(__file__))
 
 
 def Segmentation(articles_queue, segementations, lock, dbutils) :
@@ -73,7 +79,6 @@ def Calculate_Sim(num, lock, writelock, finish, dbutils) :
 	global sn_list
 	global start
 	global end
-
 
 	while True :
 		lock.acquire()
@@ -119,13 +124,13 @@ def Calculate_Sim(num, lock, writelock, finish, dbutils) :
 
 		writelock.acquire()
 
-		with open("output.csv", "a+", newline="", encoding = "utf-8-sig") as csvfile :
+		with open(os.path.join(base_path, "output.csv"), "a+", newline="", encoding = "utf-8-sig") as csvfile :
 			writer = csv.writer(csvfile)
 			for result in results:
 				writer.writerow(result)
 		
 		if GET_KEYWORDS:
-			with open("keywords_output.csv", "a+", newline="", encoding = "utf-8-sig") as csvfile :
+			with open(os.path.join(base_path, "keywords_output.csv"), "a+", newline="", encoding = "utf-8-sig") as csvfile :
 				writer = csv.writer(csvfile)
 				for result in keywords_results:
 					writer.writerow(result)
@@ -136,7 +141,6 @@ def Statistic(df, filename):
 
 	global start
 	global end
-
 
 	df["date"] = pd.to_datetime(df["date"])
 
@@ -155,7 +159,7 @@ def Statistic(df, filename):
 			results.append([now, total, len(over_03.index), str(len(over_03.index)/total)])
 
 
-	with open(export_dir + "/" + filename + ".csv", "w+", encoding = "utf-8-sig", newline = "") as f :
+	with open(os.path.join(base_path, export_dir + "/" + filename + ".csv"), "w+", encoding = "utf-8-sig", newline = "") as f :
 		writer = csv.writer(f)
 		writer.writerow(["Date", "Total", "Over_0.3", "Over_0.3/Total"])
 		for res in results:
@@ -185,7 +189,7 @@ def Statistic(df, filename):
 
 	plt.subplots_adjust(left=0.3)
 
-	plt.savefig(export_dir + "/" + filename + ".png")
+	plt.savefig(os.path.join(base_path, export_dir + "/" + filename + ".png"))
 
 
 
@@ -195,24 +199,27 @@ if __name__ == '__main__':
 	tfidf_queue = Queue()
 	articles_queue = Queue()
 	manager = Manager()
+
 	num = Value("i", 0)
 	finish = Value("i", 0)
 	segementations = Value("i", 0)
 
 	dbutils = DBUtility()
 
-	jieba.load_userdict("user_dict.txt")
+	jieba.load_userdict(os.path.join(base_path, "user_dict.txt"))
 
 	print ("Loading Stopwords...")
 
-	with open('stop_word_all.txt','r', encoding='utf-8-sig') as stopword:
+	with open(os.path.join(base_path, 'stop_word_all.txt'),'r', encoding='utf-8-sig') as stopword:
 		for word in stopword:
 			STOPWORDS.append(word.replace("\n", ""))
 
-	if not os.path.exists(export_dir):
-		os.mkdir(export_dir)
+	if not os.path.exists(os.path.join(base_path, export_dir)):
+		os.mkdir(os.path.join(base_path, export_dir))
+
 
 	days = (end - start).days
+
 
 	articles = dbutils.GetArticles({"segs": None})
 
@@ -220,7 +227,6 @@ if __name__ == '__main__':
 		articles_queue.put(article)
 
 	total = articles_queue.qsize()
-
 
 	sys.stdout.write('\r')
 	sys.stdout.write("Doing Segmentation... 0%")
@@ -266,17 +272,19 @@ if __name__ == '__main__':
 		if finish.value == WORKERS and percent >= 100:
 			break
 
-	df = pd.read_csv("output.csv", names = ["sims", "date", "article1", "article2"])
+	df = pd.read_csv(os.path.join(base_path, "output.csv"), names = ["sims", "date", "article1", "article2"])
 
 	Statistic(df, str(start) + "~" + str(end) + "_statistic")
 
 	if GET_KEYWORDS:
 
-		df_keyword = pd.read_csv("keywords_output.csv", names = ["sims", "date", "article1", "article2"])
+		df_keyword = pd.read_csv(os.path.join(base_path, "keywords_output.csv"), names = ["sims", "date", "article1", "article2"])
 
 		Statistic(df_keyword, str(start) + "~" + str(end) + "_statistic_keyword")
 
 	get_sentiment(start, end, wanted_word, dbutils)
 
-	os.remove("output.csv")
-	os.remove("keywords_output.csv")
+	os.remove(os.path.join(base_path, "output.csv"))
+	os.remove(os.path.join(base_path, "keywords_output.csv"))
+
+	Send_Mail(start, end)
