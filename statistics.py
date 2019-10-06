@@ -19,8 +19,8 @@ wanted_word = "香港"
 
 export_dir = "Outputs"
 
-# start = date(2019, 8, 31)
-# end = date(2019, 9 ,5)
+# start = date(2019, 9, 8)
+# end = date(2019, 9 ,13)
 
 start = date.today() - timedelta(days = 7)
 
