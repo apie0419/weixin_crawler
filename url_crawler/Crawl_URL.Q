@@ -9,7 +9,7 @@ StopHotkeyMod=0
 RunOnce=1
 EnableWindow=
 MacroID=4ed254d6-e5ce-4cfb-8653-7e26c31d48b5
-Description=ß⁄™∫∏}•ª1
+Description=ÊàëÁöÑËÖ≥Êú¨1
 Enable=1
 AutoRun=0
 [Repeat]
@@ -34,9 +34,6 @@ init_Y = 100
 Bar_X = 1143
 Bar_Y1 = 80
 Bar_Y2 = 818
-Error_X1 = 1081
-Error_Y1 = 603
-Error_Y2 = 652
 Account_X = 525
 Account_Y1 = 64
 Account_Y2 = 810
@@ -49,9 +46,6 @@ Scroll_Time = 1
 Page = 1
 Bar_Color = "C9C3C1"
 Bar_Color2 = "BCBCBC"
-Page_Bar_Color = "C5BFBD"
-Page_Bar_Color2 = "CCC6C4"
-Page_Bar_Color3 = "F1F1F1"
 LinkColor = "FF902C"
 Line_Color = "F2F1F1"
 Line_Color2 = "ECEAEA"
@@ -81,7 +75,7 @@ Function Main()
 	
 	Folder2 = "C:\Users\ohlab\Desktop\Data"
 	
-	r = Lib.§Â•Û.ßP¬_§Â•Ûß®¨Oß_¶s¶b(Folder)
+	r = Lib.Êñá‰ª∂.Âà§Êñ∑Êñá‰ª∂Â§æÊòØÂê¶Â≠òÂú®(Folder)
 	
 	If r = 0 Then 
 		Call Plugin.File.CreateFolder(Folder)
@@ -89,7 +83,7 @@ Function Main()
 		TracePrint "No"
 	End If
 	
-	r = Lib.§Â•Û.ßP¬_§Â•Ûß®¨Oß_¶s¶b(Folder2)
+	r = Lib.Êñá‰ª∂.Âà§Êñ∑Êñá‰ª∂Â§æÊòØÂê¶Â≠òÂú®(Folder2)
 	
 	If r = 0 Then 
 		Call Plugin.File.CreateFolder(Folder2)
@@ -212,7 +206,7 @@ Function Main()
 			alert = 0
 			Delay 300
 		End If
-		Hwnd = Plugin.Window.Find("ImagePreviewWnd", "πœ§˘¨d¨›")
+		Hwnd = Plugin.Window.Find("ImagePreviewWnd", "ÂúñÁâáÊü•Áúã")
 		If Hwnd > 0 Then 
 			
 			Call Plugin.Window.Hide(Hwnd)
@@ -234,7 +228,7 @@ Function Main()
 		TracePrint "articles: " & articles
 		TracePrint "Finding Next Picture"
 		//Delay 100
-		//FindPic ScreenShot_X1 - 10, intY + 1, ScreenShot_X2 + 10, intY  + PageWidth - 1, "D:\´ˆ¡‰∫Î∆F\next.bmp", 0.8, picX, picY
+		//FindPic ScreenShot_X1 - 10, intY + 1, ScreenShot_X2 + 10, intY  + PageWidth - 1, "D:\ÊåâÈçµÁ≤æÈùà\next.bmp", 0.8, picX, picY
 		FindPic ScreenShot_X1 - 10, intY - 10, ScreenShot_X2 + 200, intY  + PageWidth + 20 , Folder2 & "\next" & AccountNumber & ".bmp", 0.985, picX, picY
 		//Call Plugin.Pic.PrintScreen(ScreenShot_X1 - 10, intY + 1, ScreenShot_X2 + 10, intY + PageWidth - 1, "C:\Users\404411240\Documents\now.bmp")
 		k = 0
