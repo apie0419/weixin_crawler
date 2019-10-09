@@ -56,8 +56,6 @@ Refresh_X = 83
 Refresh_Y = 53
 Line_X = 595
 Retry = 0
-Back_X = 36
-Back_Y = 52
 num = 0
 
 LockMouse
