@@ -25,16 +25,21 @@
   - Foloder - 抓出的 HTML file 儲存的地方
   - Foloder2 - 其餘程式所需資料
   - init_X, init_Y - 可以隨意設
-  - Bar_X, Bar_Y1, Bar_Y2 - 點入公眾號文章列表時，最右邊的滾輪 的 X 座標及最上面的Y座標(Y1)最下面的Y座標(Y2)。
-  - Account_X, Account_Y1, Account_Y2, Account_BarX, Account_BarY - 收藏頁面的列表 X 座標(X 只要有在連結(藍字)的 X 座標上就可以了)，Y1, Y2 則需要頁面的最高及最低點。 BarX 就是右方滾輪的 X 座標，BarY 為滾輪滾到最底的座標大約會跟 Y2 接近，而 Y1 也會跟滾輪滾到最頂的Y座標接近。
+  - Bar_X, Bar_Y1, Bar_Y2, Line_X - 點入公眾號文章列表時，最右邊的滾輪 的 X 座標及最上面的Y座標(Y1)最下面的Y座標(Y2)，Line_X 只要在下圖紅框範圍內即可。
+  - ScreenShot_X1, ScreenShotX2 - 我們須紀錄每個文章標題圖片，因此需要標記文章標題位置 (X座標)，大概挑選一個長度即可 (如下圖所示，盡量不要挑太長，留白空間會增加)。
+  
+	![](https://i.imgur.com/ZgqUZqg.png)
+
+  - Account_X, Account_Y1, Account_Y2, Account_BarX, Account_BarY - 收藏頁面的列表 X 座標(下圖紅框範圍內即可)，Y1, Y2 則需要頁面的最高及最低點。 BarX 就是右方滾輪的 X 座標，BarY 為滾輪滾到最底的座標大約會跟 Y2 接近，而 Y1 也會跟滾輪滾到最頂的Y座標接近。
+
+    ![](https://i.imgur.com/3NDGPTY.png)
+	
+  - Refresh_X, Refresh_Y - 文章列表頁面的重新整理按鈕座標
   - Account_Width - 大約計算即可，計算兩個連結之間的距離，用連結中某個字母的 pixel Y 座標對應計算。
   - Account_Bar_Color, Bar_Color, Bar_Color2 - Account_Bar_Color 收藏頁面的 Bar 顏色(hover 在 Bar 上會變色要注意，紀錄變色前的)，Bar_Color, Bar_Color2 在文章列表頁面的 Bar 顏色，同樣紀錄變色前的，但有時會有不同顏色所以需要紀錄 Bar_Color2。
   - LinkColor - 連結顏色
   - Line_Color, Line_Color2 - 文章分隔線顏色
   - PageWidth - 文章分隔線之間的寬度
-  - ScreenShot_X1, ScreenShotX2 - 我們須紀錄每個文章標題圖片，因此需要標記文章標題位置 (X座標)，大概挑選一個長度即可。
-  - Refresh_X, Refresh_Y - 文章列表頁面的重新整理按鈕座標
-  - Line_X - 有在文章列表頁面的文章分隔線範圍內即可。
 
 5. 點開微信收藏畫面，並停留在收藏最底端，按 F10 即可開始執行按鍵精靈
 6. 若使用虛擬機，則須將 url_crawler/Go.bat 中的路徑更改為 F10.vbs 所在路徑，並使用 Win10 排程工作排定時間，並停留在微信收藏頁面，等待時間到程式就會自動執行。
