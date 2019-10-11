@@ -3,6 +3,7 @@ import configparser, urllib, os
 
 
 base_path = os.path.dirname(os.path.abspath(__file__))
+
 config = configparser.ConfigParser()
 config.optionxform = str
 config.read(os.path.join(base_path, '../setting.conf'), encoding='utf-8')
@@ -28,10 +29,10 @@ class DBUtility():
 			res = None
 		return res
 
-	def GetArticles(self, query) :
+	def GetArticles(self, query, field = None) :
 		res = []
 		try :
-			cursor = articles.find(query)
+			cursor = articles.find(query, field)
 		except :
 			cursor = None
 
@@ -49,9 +50,15 @@ class DBUtility():
 
 	def UpdateArticle(self, id, data) :
 		try :
-			id = articles.update_one({'_id': id}, {"$set": data}, upsert = False).inserted_id
+			articles.update_one({'_id': id}, {"$set": data}, upsert = False)
 		except :
-			id = None
+			pass
 
-		return id
+		return None
 
+	def DeleteArticle(self, id, data):
+		try :
+			articles.update_one({'_id': id}, {"$unset": data})
+		except :
+			pass
+		return None
