@@ -1,58 +1,139 @@
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
-from multiprocessing import cpu_count
-import pickle
-import csv
+from sklearn.model_selection import GridSearchCV
 from utility.DBUtility import DBUtility
+from datetime import date
+import matplotlib as plt
+import pandas as pd
 
 
-dbutils = DBUtility()
+start = date(2018, 11, 1)
+end = date(2019, 10, 6)
 
 stpwrdpath = "stop_word_all.txt"
 STOPWORDS = list()
+n_components = range(40, 105, 5)
+learning_decay = [.5, .7, .9]
 
-aus_accounts = ["华人瞰世界", "今日悉尼", "微悉尼", "澳洲微报", "悉尼印象", "Australia News", "澳洲中文台"]
-aus_articles = list()
+search_params = {'n_components': n_components, 'learning_decay': learning_decay}
 
 with open(stpwrdpath, 'r', encoding = "utf-8-sig") as stopwords :
     for word in stopwords :
         STOPWORDS.append(word.replace("\n", ""))
 
-with open("./segmentation.pickle", "rb") as f :
-    segementations = pickle.load(f)
+def Get_Data_Vectors(contents):
 
-articles = dbutils.GetArticles({})
-for article in articles :
-    if article["account"] not in aus_articles :
-        aus_articles.append(article["_id"])
+    cntVector = CountVectorizer(stop_words = STOPWORDS)
 
-sn_list = list()
-contents = list()
+    cntTf = cntVector.fit_transform(contents)
 
-for s in segementations :
-    if s[0] in aus_articles:
-        sn_list.append(s[0])
-        contents.append(" ".join(s[1]))
+    return cntTf, cntVector
+
+def Get_LDA_BestModel(cntTf):
+    
+    lda = LatentDirichletAllocation()
+    model = GridSearchCV(lda, param_grid = search_params)
+    model.fit(cntTf)
+    Get_LDA_Model_Performance(model)
 
 
-cntVector = CountVectorizer(stop_words=STOPWORDS)
-cntTf = cntVector.fit_transform(contents)
-feature_names = cntVector.get_feature_names()
+    return model.best_estimator_
 
-lda = LatentDirichletAllocation(n_components=100, learning_offset=50, random_state=0, n_jobs=cpu_count())
-docres = lda.fit_transform(cntTf)
+def Get_LDA_Model_Performance(model):
+    log_likelyhoods_5 = [round(gscore.mean_validation_score) for gscore in model.grid_scores_ if gscore.parameters['learning_decay']==0.5]
+    log_likelyhoods_7 = [round(gscore.mean_validation_score) for gscore in model.grid_scores_ if gscore.parameters['learning_decay']==0.7]
+    log_likelyhoods_9 = [round(gscore.mean_validation_score) for gscore in model.grid_scores_ if gscore.parameters['learning_decay']==0.9]
 
-with open("output_topic100.csv", "w+", newline="", encoding = "utf-8-sig") as f:
-    writer = csv.writer(f)
-    for i in range(len(sn_list)) :
-        sn = sn_list[i]
-        doc = docres[i]
-        writer.writerow([sn, list(doc)])
+    # Show graph
+    plt.figure(figsize=(12, 8))
+    plt.plot(n_topics, log_likelyhoods_5, label='0.5')
+    plt.plot(n_topics, log_likelyhoods_7, label='0.7')
+    plt.plot(n_topics, log_likelyhoods_9, label='0.9')
+    plt.title("Choosing Optimal LDA Model")
+    plt.xlabel("Num Topics")
+    plt.ylabel("Log Likelyhood Scores")
+    plt.legend(title='Learning decay', loc='best')
+    plt.save("performances.png")
 
-# with open("output_topic100.csv", "w+", newline="", encoding = "utf-8-sig") as f :
-#     for topic_idx, topic in enumerate(lda.components_):
-#         writer = csv.writer(f)
-#         writer.writerow([topic])
-#         print ("Topic%d :" % (topic_idx))
-#         print (str(topic))
-#         # print (" ".join([feature_names[i] for i in topic.argsort()[:-11:-1]]))
+def LDA_Distribution(model, cntTf, ids):
+    
+    lda_output = model.transform(cntTf)
+
+    topicnames = ["Topic" + str(i) for i in range(best_lda_model.n_topics)]
+
+    df_document_topic = pd.DataFrame(np.round(lda_output, 2), columns = topicnames, index = ids)
+
+    def color_green(val):
+        color = 'green' if val > .1 else 'black'
+        return 'color: {col}'.format(col=color)
+
+    def make_bold(val):
+        weight = 700 if val > .1 else 400
+        return 'font-weight: {weight}'.format(weight=weight)
+
+    df_document_topics = df_document_topics.style.applymap(color_green).applymap(make_bold)
+    df_document_topics.to_csv("LDA_Distribution.csv", encoding = "utf-8")
+
+def Get_MetaData(df):
+
+    df = df.drop(columns = ["NER", "tfidf", "segs", "url"])
+
+    df["content"] = df["content"].str.replace("\n", "").str.replace("\t", "")
+
+    df.to_csv("metadata.csv", encoding = "utf-8")
+
+def Get_Keywords_Distribution(model, words):
+    
+    topicnames = ["Topic" + str(i) for i in range(model.n_topics)]
+
+    distribution = model.components_ / model.components_.sum(axis=1)[:, np.newaxis]
+
+    df_topic_keywords = pd.DataFrame(distribution)
+
+    df_topic_keywords.columns = words
+    
+    df_topic_keywords.index = topicnames
+
+    df_topic_keywords.to_csv("keywords_distribution.csv", encoding = "utf-8")
+
+def Model_Visualize(best_model, cntTf, cntVector):
+
+    panel = pyLDAvis.sklearn.prepare(best_model, cntTf, cntVector, mds='tsne')
+    pyLDAvis.save_html(panel, 'lda.html')
+
+
+
+if __name__ == "__main__":
+    dbutils = DBUtility()
+    
+    field = {
+        "_id": 1,
+        "time": 1,
+        "segs": 1,
+    }
+
+    articles = dbutils.GetArticles({"state": "cn"}, field)
+
+    articles_df = pd.DataFrame(articles)
+
+    articles_df["time"] = pd.to_datetime(articles_df["time"])
+
+    articles_df = articles_df.loc[(articles_df["time"] >= pd.Timestamp(start)) & (articles_df["time"] < pd.Timestamp(end))]
+
+    articles_df["segs"] = articles_df["segs"].apply(" ".join)
+
+    contents = list(articles_df["segs"])
+
+    cntTf, cntVector = Get_Data_Vectors(contents)
+
+    words = cntVector.get_feature_names()
+
+    best_model = Get_LDA_BestModel(cntTf)
+
+    ids = list(articles_df["_id"])
+
+    LDA_Distribution(best_model, cntTf, ids)
+
+    Get_MetaData(df)
+
+    Get_Keywords_Distribution(best_model, words)
