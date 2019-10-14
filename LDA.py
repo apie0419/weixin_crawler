@@ -4,7 +4,9 @@ from sklearn.model_selection import GridSearchCV
 from utility.DBUtility import DBUtility
 from datetime import date
 import matplotlib as plt
+import numpy as np
 import pandas as pd
+import pickle, time, pyLDAvis, csv
 
 
 start = date(2018, 11, 1)
@@ -12,7 +14,7 @@ end = date(2019, 10, 6)
 
 stpwrdpath = "stop_word_all.txt"
 STOPWORDS = list()
-n_components = range(50, 105, 10)
+n_components = range(80, 105, 10)
 learning_decay = [.7]
 
 search_params = {'n_components': n_components, 'learning_decay': learning_decay}
@@ -31,13 +33,28 @@ def Get_Data_Vectors(contents):
 
 def Get_LDA_BestModel(cntTf):
     
-    lda = LatentDirichletAllocation()
-    model = GridSearchCV(lda, param_grid = search_params, cv = 3, n_jobs = -1, verbose = 5)
-    model.fit(cntTf)
-    Get_LDA_Model_Performance(model)
+    #model = GridSearchCV(lda, param_grid = search_params, cv = 3, n_jobs = 4, verbose = 10)
+    #model.fit(cntTf)
+    #Get_LDA_Model_Performance(model)
+    for i in range(60, 105, 10):
+        lda = LatentDirichletAllocation(n_topics = i, verbose = 10, learning_decay = .7, n_jobs = 1)
 
+        t0 = time.time()
 
-    return model.best_estimator_
+        lda.fit(cntTf)
+    
+        gamma = lda.transform(cntTf)
+
+        perplexity = lda.perplexity(cntTf, gamma)
+
+        print ("Spent %.3f sec, Perplexity = %.3f"%(time.time() - t0, perplexity))
+
+        with open("perplexity.csv", "a+", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow([i, performances])
+
+    return lda
+    #return model.best_estimator_
 
 def Get_LDA_Model_Performance(model):
     log_likelyhoods_7 = [round(gscore.mean_validation_score) for gscore in model.grid_scores_ if gscore.parameters['learning_decay']==0.7]
@@ -55,10 +72,10 @@ def LDA_Distribution(model, cntTf, ids):
     
     lda_output = model.transform(cntTf)
 
-    topicnames = ["Topic" + str(i) for i in range(best_lda_model.n_topics)]
+    topicnames = ["Topic" + str(i) for i in range(model.n_topics)]
 
     df_document_topic = pd.DataFrame(np.round(lda_output, 2), columns = topicnames, index = ids)
-
+    """
     def color_green(val):
         color = 'green' if val > .1 else 'black'
         return 'color: {col}'.format(col=color)
@@ -67,8 +84,9 @@ def LDA_Distribution(model, cntTf, ids):
         weight = 700 if val > .1 else 400
         return 'font-weight: {weight}'.format(weight=weight)
 
-    df_document_topics = df_document_topics.style.applymap(color_green).applymap(make_bold)
-    df_document_topics.to_csv("LDA_Distribution.csv", encoding = "utf-8")
+    df_document_topic = df_document_topic.style.applymap(color_green).applymap(make_bold)
+    """
+    df_document_topic.to_csv("LDA_Distribution.csv", encoding = "utf-8")
 
 def Get_MetaData(df):
 
@@ -105,9 +123,9 @@ if __name__ == "__main__":
     field = {
         "_id": 1,
         "time": 1,
-        "segs": 1,
+        "segs": 1
     }
-
+    
     articles = dbutils.GetArticles({"state": "cn"}, field)
 
     articles_df = pd.DataFrame(articles)
@@ -120,16 +138,34 @@ if __name__ == "__main__":
 
     contents = list(articles_df["segs"])
 
+    ids = list(articles_df["_id"])
+
+    del articles_df
+
     cntTf, cntVector = Get_Data_Vectors(contents)
 
     words = cntVector.get_feature_names()
-
+    
     best_model = Get_LDA_BestModel(cntTf)
 
-    ids = list(articles_df["_id"])
+    print (best_model.get_params())
+    
+    file = open('best_model.pickle', 'wb')
+
+    pickle.dump(best_model, file)
+
+    file.close()
+
+    
+
+    """    
+    file = open('best_model.pickle', 'rb')
+    best_model = pickle.load(file)
+    file.close()
+    """
 
     LDA_Distribution(best_model, cntTf, ids)
 
-    Get_MetaData(df)
+    # Get_MetaData(articles_df)
 
     Get_Keywords_Distribution(best_model, words)

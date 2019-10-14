@@ -4,3 +4,5 @@ user_dict.txt
 *.csv
 *.png
 Outputs
+*.out
+*.log
