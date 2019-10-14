@@ -1,6 +1,7 @@
 from utility.DBUtility import DBUtility
 from multiprocessing   import Queue, Process, Lock, Manager, Value, cpu_count
 from datetime          import date, timedelta
+from progressbar       import *
 import pandas as pd
 import csv, os, sys, time
 
@@ -24,8 +25,12 @@ def Download(dt_queue, writelock, dbutil, finish, res):
 
         for article in articles:
             tmp.append({
+                "_id": article["_id"],
                 "account": article["account"],
+                "author": article["author"],
                 "date": str(dt),
+                "title": article["title"],
+                "content": article["content"],
                 "official": article["official"],
                 "censor": article["censor"],
                 "license": article["license"],
@@ -63,16 +68,21 @@ if __name__ == '__main__':
 
     total = dt_queue.qsize()
 
-    sys.stdout.write("Downloading... 0%")
+    # sys.stdout.write("Downloading... 0%")
+
+    widgets = ['Downloading: ',Percentage(), ' ', Bar('#'),' ', Timer()]
+
+    pbar = ProgressBar(widgets=widgets).start()
 
     while True :
-        percent = round((total - dt_queue.qsize())/total*100, 2)
-        sys.stdout.write('\r')
-        sys.stdout.write("Downloading... {}%".format(percent))
-        sys.stdout.flush()
+        percent = int((total - dt_queue.qsize())/total*100)
+        pbar.update(percent)
+        # sys.stdout.write('\r')
+        # sys.stdout.write("Downloading... {}%".format(percent))
+        # sys.stdout.flush()
         time.sleep(0.1)
         if finish.value == total and percent >= 100:
             break
-
+    pbar.finish()
     df = pd.DataFrame(list(res))
     df.to_csv(os.path.join(base_path, "Data.csv"))
