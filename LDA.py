@@ -12,8 +12,8 @@ end = date(2019, 10, 6)
 
 stpwrdpath = "stop_word_all.txt"
 STOPWORDS = list()
-n_components = range(40, 105, 5)
-learning_decay = [.5, .7, .9]
+n_components = range(50, 105, 10)
+learning_decay = [.7]
 
 search_params = {'n_components': n_components, 'learning_decay': learning_decay}
 
@@ -32,7 +32,7 @@ def Get_Data_Vectors(contents):
 def Get_LDA_BestModel(cntTf):
     
     lda = LatentDirichletAllocation()
-    model = GridSearchCV(lda, param_grid = search_params)
+    model = GridSearchCV(lda, param_grid = search_params, cv = 3, n_jobs = -1, verbose = 5)
     model.fit(cntTf)
     Get_LDA_Model_Performance(model)
 
@@ -40,15 +40,11 @@ def Get_LDA_BestModel(cntTf):
     return model.best_estimator_
 
 def Get_LDA_Model_Performance(model):
-    log_likelyhoods_5 = [round(gscore.mean_validation_score) for gscore in model.grid_scores_ if gscore.parameters['learning_decay']==0.5]
     log_likelyhoods_7 = [round(gscore.mean_validation_score) for gscore in model.grid_scores_ if gscore.parameters['learning_decay']==0.7]
-    log_likelyhoods_9 = [round(gscore.mean_validation_score) for gscore in model.grid_scores_ if gscore.parameters['learning_decay']==0.9]
 
     # Show graph
     plt.figure(figsize=(12, 8))
-    plt.plot(n_topics, log_likelyhoods_5, label='0.5')
     plt.plot(n_topics, log_likelyhoods_7, label='0.7')
-    plt.plot(n_topics, log_likelyhoods_9, label='0.9')
     plt.title("Choosing Optimal LDA Model")
     plt.xlabel("Num Topics")
     plt.ylabel("Log Likelyhood Scores")
