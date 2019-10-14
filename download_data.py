@@ -29,6 +29,7 @@ def Download(dt_queue, writelock, dbutil, finish, res):
                 "account": article["account"],
                 "author": article["author"],
                 "date": str(dt),
+                "segs": article["segs"],
                 "title": article["title"],
                 "content": article["content"],
                 "official": article["official"],
