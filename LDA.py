@@ -1,5 +1,6 @@
 
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.model_selection import GridSearchCV
 from utility.DBUtility import DBUtility
@@ -15,8 +16,6 @@ parser = ArgumentParser()
 parser.add_argument("--model", help="LDA Model Path", dest="model")
 parser.add_argument("--data", help="Data Path", dest="data", required=True)
 parser.add_argument("-n", help="Keywords Number", dest="keyword", default=15, type=int)
-
-MODELEXISTS = True 
 
 base_path = os.path.dirname(os.path.abspath(__file__))
 stpwrdpath = "stop_word_all.txt"
@@ -135,19 +134,21 @@ def Get_Keywords_Distribution(model, words, n_words):
     
     print ("Extracting Keywords Distribution...")
 
-    topicnames = ["Topic" + str(i) for i in range(model.n_topics)]
+    topicnames = ["Topic" + str(i) for i in range(1, model.n_topics + 1)]
     
     keywords = ["Keyword" + str(i) for i in range(1, 16)]
 
     topic_keywords = []
 
     for topic_weights in model.components_:
-
-        top_keyword_locs = (-topic_weights).argsort()[:n_words]
+        T_topic_weights = np.transpose(np.array(topic_weights)[np.newaxis])
+        scaler = MinMaxScaler()
+        scaler.fit(T_topic_weights)
+        transform_topic_weights = np.transpose(scaler.transform(T_topic_weights))
+        top_keyword_locs = (-transform_topic_weights).argsort()[:n_words]
         res = list()
-        _sum = np.sum(topic_weights)
         for i in top_keyword_locs:
-            res.append(str(words[i]) + "/" + str(round(topic_weights[i]/_sum, 3)))
+            res.append(str(words[i]) + "/" + str(round(transform_topic_weights[i], 3)))
 
         topic_keywords.append(res)
 
