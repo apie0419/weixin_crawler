@@ -1,17 +1,25 @@
+
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
 from sklearn.model_selection import GridSearchCV
 from utility.DBUtility import DBUtility
+from argparse import ArgumentParser
 from datetime import date
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import pickle, time, pyLDAvis, pyLDAvis.sklearn
+import pickle, time, pyLDAvis, pyLDAvis.sklearn, os
+
+parser = ArgumentParser()
+
+parser.add_argument("--model", help="LDA Model Path", dest="model")
+parser.add_argument("--data", help="Data Path", dest="data", required=True)
+parser.add_argument("-n", help="Keywords Number", dest="keyword", default=15, type=int)
 
 MODELEXISTS = True 
 
+base_path = os.path.dirname(os.path.abspath(__file__))
 stpwrdpath = "stop_word_all.txt"
-model_path = "best_model.pickle"
 
 STOPWORDS = list()
 n_components = range(50, 105, 10)
@@ -29,10 +37,10 @@ def Get_Data_Vectors(contents):
 
     return cntTf, cntVector
 
-def Get_LDA_BestModel(cntTf):
+def Get_LDA_BestModel(cntTf, model_path):
     
 
-    if MODELEXISTS:
+    if model_path is not None:
 
         file = open(model_path, 'rb')
 
@@ -123,17 +131,29 @@ def Get_MetaData(df):
 
     df.to_csv("metadata.csv", encoding = "utf-8")
 
-def Get_Keywords_Distribution(model, words):
+def Get_Keywords_Distribution(model, words, n_words):
     
     print ("Extracting Keywords Distribution...")
 
     topicnames = ["Topic" + str(i) for i in range(model.n_topics)]
+    
+    keywords = ["Keyword" + str(i) for i in range(1, 16)]
 
-    distribution = model.components_ / model.components_.sum(axis=1)[:, np.newaxis]
+    topic_keywords = []
 
-    df_topic_keywords = pd.DataFrame(distribution)
+    for topic_weights in model.components_:
 
-    df_topic_keywords.columns = words
+        top_keyword_locs = (-topic_weights).argsort()[:n_words]
+        res = list()
+        _sum = np.sum(topic_weights)
+        for i in top_keyword_locs:
+            res.append(str(words[i]) + "/" + str(round(topic_weights[i]/_sum, 3)))
+
+        topic_keywords.append(res)
+
+    df_topic_keywords = pd.DataFrame(topic_keywords)
+
+    df_topic_keywords.columns = keywords
     
     df_topic_keywords.index = topicnames
 
@@ -149,7 +169,15 @@ def Model_Visualize(best_model, cntTf, cntVector):
 
 if __name__ == "__main__":
     
-    articles_df = pd.read_csv("Data.csv", encoding = "utf-8")
+    args = parser.parse_args()
+
+    model_path = args.model
+
+    data_path = args.data
+    
+    n_words = args.keyword
+
+    articles_df = pd.read_csv(os.path.join(base_path, data_path), encoding = "utf-8")
 
     articles_df["segs"] = articles_df["segs"].apply(eval).apply(" ".join)
 
@@ -159,18 +187,15 @@ if __name__ == "__main__":
 
     Get_MetaData(articles_df)
 
-    # del articles_df
-
     cntTf, cntVector = Get_Data_Vectors(contents)
 
     words = cntVector.get_feature_names()
     
-    best_model = Get_LDA_BestModel(cntTf)
+    best_model = Get_LDA_BestModel(cntTf, model_path)
 
-    # LDA_Distribution(best_model, cntTf, ids)
+    LDA_Distribution(best_model, cntTf, ids)
 
-    # Get_Keywords_Distribution(best_model, words)
+    Get_Keywords_Distribution(best_model, words, n_words)
 
     Model_Visualize(best_model, cntTf, cntVector)
 	
-    
