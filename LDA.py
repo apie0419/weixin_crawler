@@ -144,7 +144,7 @@ def Get_Keywords_Distribution(model, words, n_words):
         T_topic_weights = np.transpose(np.array(topic_weights)[np.newaxis])
         scaler = MinMaxScaler()
         scaler.fit(T_topic_weights)
-        transform_topic_weights = np.transpose(scaler.transform(T_topic_weights))
+        transform_topic_weights = np.transpose(scaler.transform(T_topic_weights))[0]
         top_keyword_locs = (-transform_topic_weights).argsort()[:n_words]
         res = list()
         for i in top_keyword_locs:
