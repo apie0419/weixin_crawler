@@ -24,7 +24,8 @@ def Download(dt_queue, writelock, dbutil, finish, res):
         tmp = list()
 
         for article in articles:
-            tmp.append({
+
+        	tmp.append({
                 "_id": article["_id"],
                 "account": article["account"],
                 "author": article["author"],
@@ -70,6 +71,8 @@ if __name__ == '__main__':
     total = dt_queue.qsize()
 
     # sys.stdout.write("Downloading... 0%")
+
+    streams.flush()
 
     widgets = ['Downloading: ',Percentage(), ' ', Bar('#'),' ', Timer()]
 
