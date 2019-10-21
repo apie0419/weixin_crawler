@@ -15,9 +15,9 @@ parser.add_argument("--model", help="LDA Model Path", dest="model")
 parser.add_argument("--data", help="Data Path", dest="data", required=True)
 parser.add_argument("-n", help="Keywords Number", dest="keyword", default=15, type=int)
 
-
 base_path = os.path.dirname(os.path.abspath(__file__))
 stpwrdpath = "stop_word_all.txt"
+
 STOPWORDS = list()
 n_components = range(50, 105, 10)
 learning_decay = .7
@@ -27,7 +27,6 @@ with open(stpwrdpath, 'r', encoding = "utf-8-sig") as stopwords :
         STOPWORDS.append(word.replace("\n", ""))
 
 def Get_Data_Vectors(contents):
-    
     cntVector = CountVectorizer(stop_words = STOPWORDS)
 
     cntTf = cntVector.fit_transform(contents)
@@ -115,7 +114,6 @@ def LDA_Distribution(model, cntTf, ids):
     lda_output = model.transform(cntTf)
 
     topicnames = ["Topic" + str(i) for i in range(1, model.n_topics + 1)]
-
     df_document_topic = pd.DataFrame(np.round(lda_output, 2), columns = topicnames, index = ids)
     
     df_document_topic.to_csv("LDA_Distribution.csv", encoding = "utf-8")
@@ -231,4 +229,3 @@ if __name__ == "__main__":
     Get_Keywords_Distribution(best_model, words, n_words)
 
     Model_Visualize(best_model, cntTf, cntVector)
-	
