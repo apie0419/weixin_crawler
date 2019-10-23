@@ -15,9 +15,9 @@ parser.add_argument("--model", help="LDA Model Path", dest="model")
 parser.add_argument("--data", help="Data Path", dest="data", required=True)
 parser.add_argument("-n", help="Keywords Number", dest="keyword", default=15, type=int)
 
+
 base_path = os.path.dirname(os.path.abspath(__file__))
 stpwrdpath = "stop_word_all.txt"
-
 STOPWORDS = list()
 n_components = range(50, 105, 10)
 learning_decay = .7
@@ -27,6 +27,7 @@ with open(stpwrdpath, 'r', encoding = "utf-8-sig") as stopwords :
         STOPWORDS.append(word.replace("\n", ""))
 
 def Get_Data_Vectors(contents):
+    
     cntVector = CountVectorizer(stop_words = STOPWORDS)
 
     cntTf = cntVector.fit_transform(contents)
@@ -114,6 +115,7 @@ def LDA_Distribution(model, cntTf, ids):
     lda_output = model.transform(cntTf)
 
     topicnames = ["Topic" + str(i) for i in range(1, model.n_topics + 1)]
+
     df_document_topic = pd.DataFrame(np.round(lda_output, 2), columns = topicnames, index = ids)
     
     df_document_topic.to_csv("LDA_Distribution.csv", encoding = "utf-8")
@@ -134,7 +136,7 @@ def LDA_Distribution(model, cntTf, ids):
 
     res.to_csv("topic_distribution.csv", encoding="utf-8")
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(16, 8))
 
     x_pos = range(1, 101)
 
@@ -154,19 +156,21 @@ def LDA_Distribution(model, cntTf, ids):
 
     plt.savefig("topic_distribution.png")
 
+    return num_documents
+
 def Get_MetaData(df):
 
     df = df.drop(columns = ["content"])
 
     df.to_csv("metadata.csv", encoding = "utf-8")
 
-def Get_Keywords_Distribution(model, words, n_words):
+def Get_Keywords_Distribution(model, words, n_words, num_documents):
     
     print ("Extracting Keywords Distribution...")
 
     topicnames = ["Topic" + str(i) for i in range(1, model.n_topics + 1)]
     
-    keywords = ["Keyword" + str(i) for i in range(1, 16)]
+    keywords = ["Keyword" + str(i) for i in range(1, n_words + 1)]
 
     topic_keywords = []
 
@@ -183,7 +187,6 @@ def Get_Keywords_Distribution(model, words, n_words):
         topic_keywords.append(res)
 
     df_topic_keywords = pd.DataFrame(topic_keywords)
-
     df_topic_keywords.columns = keywords
     
     df_topic_keywords.index = topicnames
@@ -194,7 +197,7 @@ def Model_Visualize(best_model, cntTf, cntVector):
 
     print ("Model Visualizing...")
 
-    panel = pyLDAvis.sklearn.prepare(best_model, cntTf, cntVector, mds='tsne')
+    panel = pyLDAvis.sklearn.prepare(best_model, cntTf, cntVector, mds='tsne', sort_topics=False)
 
     pyLDAvis.save_html(panel, 'lda.html')
 
@@ -224,8 +227,9 @@ if __name__ == "__main__":
     
     best_model = Get_LDA_BestModel(cntTf, model_path)
 
-    LDA_Distribution(best_model, cntTf, ids)
+    num_documents = LDA_Distribution(best_model, cntTf, ids)
 
-    Get_Keywords_Distribution(best_model, words, n_words)
+    Get_Keywords_Distribution(best_model, words, n_words, num_documents)
 
-    Model_Visualize(best_model, cntTf, cntVector)
+    # Model_Visualize(best_model, cntTf, cntVector)
+	
