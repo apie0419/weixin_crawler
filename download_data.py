@@ -32,14 +32,10 @@ def Download(dt_queue, writelock, dbutil, finish, res, keywords):
             else:
                 fetch = False
             for keyword in keywords:
-                if keyword == "台湾":
-                    if article["segs"].count(keyword) > 1:
-                        fetch = True
-                        break
-                else:
-                    if article["segs"].count(keyword) > 0:
-                        fetch = True
-                        break
+                
+                if article["segs"].count(keyword) > 0:
+                    fetch = True
+                    break
             if fetch:
                 tmp.append({
                     "_id": article["_id"],
