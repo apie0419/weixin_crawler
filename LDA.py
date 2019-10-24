@@ -1,7 +1,6 @@
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.decomposition import LatentDirichletAllocation
-from sklearn.model_selection import GridSearchCV
 from utility.DBUtility import DBUtility
 from argparse import ArgumentParser
 from datetime import date
@@ -132,19 +131,19 @@ def LDA_Distribution(model, cntTf, ids):
 
     res = pd.DataFrame({
         "distribution": value
-    }, index = topics)
+    }, index = topicnames)
 
     res.to_csv("topic_distribution.csv", encoding="utf-8")
 
     fig, ax = plt.subplots(figsize=(16, 8))
 
-    x_pos = range(1, 101)
+    x_pos = range(1, model.n_topics + 1)
 
     ax.bar(x_pos, value, align='edge')
 
     ax.set_xticks(x_pos)
 
-    ax.set_xticklabels(topics, rotation=270)
+    ax.set_xticklabels(topicnames, rotation=270)
 
     ax.set_xlabel("Topics")
 
@@ -156,15 +155,11 @@ def LDA_Distribution(model, cntTf, ids):
 
     plt.savefig("topic_distribution.png")
 
-    return num_documents
-
 def Get_MetaData(df):
-
-    df = df.drop(columns = ["content"])
 
     df.to_csv("metadata.csv", encoding = "utf-8")
 
-def Get_Keywords_Distribution(model, words, n_words, num_documents):
+def Get_Keywords_Distribution(model, words, n_words):
     
     print ("Extracting Keywords Distribution...")
 
@@ -219,7 +214,7 @@ if __name__ == "__main__":
 
     ids = list(articles_df["_id"])
 
-    Get_MetaData(articles_df)
+    # Get_MetaData(articles_df)
 
     cntTf, cntVector = Get_Data_Vectors(contents)
 
@@ -227,9 +222,9 @@ if __name__ == "__main__":
     
     best_model = Get_LDA_BestModel(cntTf, model_path)
 
-    num_documents = LDA_Distribution(best_model, cntTf, ids)
+    LDA_Distribution(best_model, cntTf, ids)
 
-    Get_Keywords_Distribution(best_model, words, n_words, num_documents)
+    Get_Keywords_Distribution(best_model, words, n_words)
 
-    # Model_Visualize(best_model, cntTf, cntVector)
+    Model_Visualize(best_model, cntTf, cntVector)
 	

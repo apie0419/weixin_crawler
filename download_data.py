@@ -2,17 +2,21 @@ from utility.DBUtility import DBUtility
 from multiprocessing   import Queue, Process, Lock, Manager, Value, cpu_count
 from datetime          import date, timedelta
 from progressbar       import *
+from argparse          import ArgumentParser
 import pandas as pd
 import csv, os, sys, time
 
-start = date(2018, 11, 1)
-end = date(2019, 10, 5)
+
+parser = ArgumentParser()
+parser.add_argument("--keywords", help="needed keywords Path", dest="keyword")
+parser.add_argument("--start", help="start date: yyyy-mm-dd", dest="start", required=True)
+parser.add_argument("--end", help="end date: yyyy-mm-dd", dest="end", required=True)
 
 base_path = os.path.dirname(os.path.abspath(__file__))
 
 WORKERS = cpu_count()
 
-def Download(dt_queue, writelock, dbutil, finish, res):
+def Download(dt_queue, writelock, dbutil, finish, res, keywords):
     while True:
         try :
             dt = dt_queue.get()
@@ -22,22 +26,33 @@ def Download(dt_queue, writelock, dbutil, finish, res):
         articles = dbutil.GetArticles({"time": str(dt), "state": "cn"})
 
         tmp = list()
-
         for article in articles:
-
-        	tmp.append({
-                "_id": article["_id"],
-                "account": article["account"],
-                "author": article["author"],
-                "date": str(dt),
-                "segs": article["segs"],
-                "title": article["title"],
-                "content": article["content"],
-                "official": article["official"],
-                "censor": article["censor"],
-                "license": article["license"],
-                "forprofit": article["forprofit"]
-            })
+            if len(keywords) == 0:
+                fetch = True
+            else:
+                fetch = False
+            for keyword in keywords:
+                if keyword == "台湾":
+                    if article["segs"].count(keyword) > 1:
+                        fetch = True
+                        break
+                else:
+                    if article["segs"].count(keyword) > 0:
+                        fetch = True
+                        break
+            if fetch:
+                tmp.append({
+                    "_id": article["_id"],
+                    "account": article["account"],
+                    "author": article["author"],
+                    "date": str(dt),
+                    "segs": article["segs"],
+                    "title": article["title"],
+                    "official": article["official"],
+                    "censor": article["censor"],
+                    "license": article["license"],
+                    "forprofit": article["forprofit"]
+                })
 
         writelock.acquire()
 
@@ -53,6 +68,17 @@ if __name__ == '__main__':
     manager = Manager()
     finish = Value("i", 0)
     res = manager.list()
+    args = parser.parse_args()
+    keyword_path = args.keyword
+    start_str = args.start.split("-")
+    end_str = args.end.split("-")
+    start = date(int(start_str[0]), int(start_str[1]), int(start_str[2]))
+    end = date(int(end_str[0]), int(end_str[1]), int(end_str[2]))
+    keywords = list()
+    if keyword_path is not None:
+        with open(keyword_path, "r", encoding="utf-8-sig") as keywds:
+            for word in keywds:
+                keywords.append(word.replace("\n", ""))
     now = start
     dbutil = DBUtility()
 
@@ -64,15 +90,11 @@ if __name__ == '__main__':
 
 
     for _ in range(WORKERS):
-        t = Process(target = Download, args = (dt_queue, writelock, dbutil, finish, res))
+        t = Process(target = Download, args = (dt_queue, writelock, dbutil, finish, res, keywords))
         t.daemon = True
         t.start()
 
     total = dt_queue.qsize()
-
-    # sys.stdout.write("Downloading... 0%")
-
-    streams.flush()
 
     widgets = ['Downloading: ',Percentage(), ' ', Bar('#'),' ', Timer()]
 
@@ -81,9 +103,6 @@ if __name__ == '__main__':
     while True :
         percent = int((total - dt_queue.qsize())/total*100)
         pbar.update(percent)
-        # sys.stdout.write('\r')
-        # sys.stdout.write("Downloading... {}%".format(percent))
-        # sys.stdout.flush()
         time.sleep(0.1)
         if finish.value == total and percent >= 100:
             break
