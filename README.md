@@ -57,9 +57,11 @@
 
 2. 輸入 python statistics.py 即開始執行
 
-##### 輸出文件
+##### 輸出資料夾
 
-輸出文件有
+- Outputs
+
+##### 輸出文件
 
 - <date>_statistics.csv - 每天的總文章 pairs, 相似度大於 0.3 的比例與總數。
 - <date>_sentiment.csv - 每篇文章的情緒分布。
@@ -67,9 +69,25 @@
 
 #### 文章數量統計
 
-1. 設定 download_data.py, plots.py 的時間區間
-2. python download_data.py
-3. python plots.py
+1. python download_data.py
+  - arguments
+    - --keyword <your_keywords_file> (每行一個關鍵字)
+    - --start <start_date> (e.g. 2019-09-10) (required)
+    - --end <end_date> (e.g. 2019-10-06) (required)
+  - output
+    - Data.csv
+  
+2. python plots.py
+  - arguments (以每週計算，start_date 為開始計算的週的第一天， end_date 為最後一週的最後一天)
+    - --start <start_date> (e.g. 2019-09-10) (required)
+    - --end <end_date> (e.g. 2019-10-06) (required)
+    - --data <your_data_file> (e.g. Data.csv) (required) 
+  - Output
+    - 如下介紹
+
+##### 輸出資料夾
+
+- plots_Output
 
 ##### 輸出文件
 
@@ -77,3 +95,41 @@
 - week_count.png - 每周文章總數折線圖
 - week_count_rate.png - 每周文章 官方/全部, 有許可證/全部, 商業號/全部 比例折線圖
 - week_count_rate2.png - 每周文章 官方/非官方, 有許可證/無許可證, 商業號/非商業號 比例折線圖
+
+#### LDA 主題分析
+
+1. python download_data.py
+  - arguments
+    - --keyword <your_keywords_file> (每行一個關鍵字)
+    - --start <start_date> (e.g. 2019-09-10) (required)
+    - --end <end_date> (e.g. 2019-10-06) (required)
+  - output
+    - Data.csv (即為 metadata)
+
+2. python LDA.py
+  - arguments
+    - --model <your_model_file> (e.g. best_model.pickle)
+    - --data <your_data_file> (e.g. Data.csv) (required)
+    - -n <keyword_number> (default: 15)
+  - output
+    - 如下介紹
+
+##### 輸出文件夾
+
+- LDA_Output
+
+##### 輸出文件
+
+1. best_model.pickle (if --model argument is None): 計算 perplexity 最低的主題數，並將此 LDA model 輸出為 pickle，以供之後使用
+
+2. performance.png: 輸出每個 topic 數量對應的 lda perplexity 折線圖提供參考
+
+3. LDA_Distribution.csv: 每篇文章的主題分布情形
+
+4. topic_distribution.csv: 每個主題對所有文章的佔比
+
+5. topic_distribution.png: 每個主題對所有文章的排序過後的佔比圖
+
+6. keywords_distribution: 每個主題所代表的 top_n 關鍵字(defined by -n argument)，並輸出關鍵字權重。
+
+7. lda.html: 輸出 pyldavis 提供之視覺化互動網頁

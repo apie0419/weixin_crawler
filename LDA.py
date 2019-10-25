@@ -16,6 +16,7 @@ parser.add_argument("-n", help="Keywords Number", dest="keyword", default=15, ty
 
 
 base_path = os.path.dirname(os.path.abspath(__file__))
+output_path = "LDA_Output"
 stpwrdpath = "stop_word_all.txt"
 STOPWORDS = list()
 n_components = range(50, 105, 10)
@@ -38,7 +39,7 @@ def Get_LDA_BestModel(cntTf, model_path):
 
     if model_path is not None:
 
-        file = open(model_path, 'rb')
+        file = open(os.path.join(base_path, model_path), 'rb')
 
         best_model = pickle.load(file)
 
@@ -82,7 +83,7 @@ def Get_LDA_BestModel(cntTf, model_path):
 
         best_model.fit(cntTf)
 
-        file = open('best_model.pickle', 'wb')
+        file = open(os.path.join(base_path, output_path, 'best_model.pickle'), 'wb')
 
         pickle.dump(best_model, file)
 
@@ -105,7 +106,7 @@ def Get_LDA_Model_Performance(res):
     plt.title("Choosing Optimal LDA Model")
     plt.subplots_adjust(bottom=0.2)
 
-    plt.savefig("performances.png")
+    plt.savefig(os.path.join(base_path, output_path, "performances.png"))
 
 def LDA_Distribution(model, cntTf, ids):
     
@@ -117,7 +118,7 @@ def LDA_Distribution(model, cntTf, ids):
 
     df_document_topic = pd.DataFrame(np.round(lda_output, 2), columns = topicnames, index = ids)
     
-    df_document_topic.to_csv("LDA_Distribution.csv", encoding = "utf-8")
+    df_document_topic.to_csv(os.path.join(base_path, output_path, "LDA_Distribution.csv"), encoding = "utf-8")
 
     topic_mean = df_document_topic.mean(axis=0)
 
@@ -133,7 +134,7 @@ def LDA_Distribution(model, cntTf, ids):
         "distribution": value
     }, index = topicnames)
 
-    res.to_csv("topic_distribution.csv", encoding="utf-8")
+    res.to_csv(os.path.join(base_path, output_path, "topic_distribution.csv"), encoding="utf-8")
 
     fig, ax = plt.subplots(figsize=(16, 8))
 
@@ -151,13 +152,11 @@ def LDA_Distribution(model, cntTf, ids):
 
     ax.set_title("Top Topics")
 
+    ax.axhline(color='r', y=0.011)
+
     plt.tight_layout()
 
-    plt.savefig("topic_distribution.png")
-
-def Get_MetaData(df):
-
-    df.to_csv("metadata.csv", encoding = "utf-8")
+    plt.savefig(os.path.join(base_path, output_path, "topic_distribution.png"))
 
 def Get_Keywords_Distribution(model, words, n_words):
     
@@ -186,7 +185,7 @@ def Get_Keywords_Distribution(model, words, n_words):
     
     df_topic_keywords.index = topicnames
 
-    df_topic_keywords.to_csv("keywords_distribution.csv", encoding = "utf-8")
+    df_topic_keywords.to_csv(os.path.join(base_path, output_path, "keywords_distribution.csv"), encoding = "utf-8")
 
 def Model_Visualize(best_model, cntTf, cntVector):
 
@@ -194,7 +193,7 @@ def Model_Visualize(best_model, cntTf, cntVector):
 
     panel = pyLDAvis.sklearn.prepare(best_model, cntTf, cntVector, mds='tsne', sort_topics=False)
 
-    pyLDAvis.save_html(panel, 'lda.html')
+    pyLDAvis.save_html(panel, os.path.join(base_path, output_path, 'lda.html'))
 
 if __name__ == "__main__":
     
@@ -213,8 +212,6 @@ if __name__ == "__main__":
     contents = list(articles_df["segs"])
 
     ids = list(articles_df["_id"])
-
-    # Get_MetaData(articles_df)
 
     cntTf, cntVector = Get_Data_Vectors(contents)
 

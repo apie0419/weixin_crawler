@@ -2,14 +2,20 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.font_manager import FontProperties
+from argparse import ArgumentParser
 from datetime import date, timedelta
+import os
 
+parser = ArgumentParser()
+parser.add_argument("--start", help="start date: yyyy-mm-dd", dest="start", required=True)
+parser.add_argument("--end", help="end date: yyyy-mm-dd", dest="end", required=True)
+parser.add_argument("--data", help="Data Path", dest="data", required=True)
 
 plt.rcParams['font.sans-serif'] = ['Microsoft JhengHei'] 
 plt.rcParams['axes.unicode_minus'] = False
+base_path = os.path.dirname(os.path.abspath(__file__))
+output_path = "plots_Output"
 
-start = date(2018, 10, 28)
-end = date(2019, 10, 6)
 
 def get_count_csv(df):
     censor = df.loc[:, ["account", "censor"]]
@@ -21,7 +27,7 @@ def get_count_csv(df):
     attributes = df.loc[:, ["account", "forprofit", "license", "official"]].drop_duplicates().reset_index(drop=True)
     ans = attributes.merge(sum_censor, on = "account")
     ans = ans.merge(sum_total, on = "account")
-    ans.to_csv("count.csv", encoding = "utf-8")
+    ans.to_csv(os.path.join(base_path, output_path, "count.csv"), encoding = "utf-8")
 
 
 def get_week_count_plot(df, start, end):
@@ -57,7 +63,7 @@ def get_week_count_plot(df, start, end):
     # plt.gcf().autofmt_xdate()
     plt.xticks(rotation=90)
     plt.subplots_adjust(bottom=0.2)
-    plt.savefig("week_count.png")
+    plt.savefig(os.path.join(base_path, output_path, "week_count.png"))
 
 def get_week_countrate_plot(df, start, end):
     dt = list()
@@ -102,7 +108,7 @@ def get_week_countrate_plot(df, start, end):
     ax.set_xlabel("週次")
     ax.set_ylabel("比例")
     plt.subplots_adjust(bottom=0.2)
-    plt.savefig("week_count_rate.png")
+    plt.savefig(os.path.join(base_path, output_path, "week_count_rate.png"))
 
 def get_week_ratio_plot(df, start, end):
     dt = list()
@@ -145,12 +151,19 @@ def get_week_ratio_plot(df, start, end):
     ax.set_xlabel("週次")
     ax.set_ylabel("比例")
     plt.subplots_adjust(bottom=0.2)
-    plt.savefig("week_count_rate2.png")
+    plt.savefig(os.path.join(base_path, output_path, "week_count_rate2.png"))
 
 
 
 if __name__ == '__main__':
-    df = pd.read_csv("Data.csv", encoding = "utf-8", index_col = 0)
+
+    start_str = args.start.split("-")
+    end_str = args.end.split("-")
+    data_path = args.data
+    start = date(int(start_str[0]), int(start_str[1]), int(start_str[2]))
+    end = date(int(end_str[0]), int(end_str[1]), int(end_str[2]))
+
+    df = pd.read_csv(os.path.join(base_path, data_path), encoding = "utf-8", index_col = 0)
     df["date"] = pd.to_datetime(df["date"])
 
     get_count_csv(df)
