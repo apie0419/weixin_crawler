@@ -163,6 +163,9 @@ if __name__ == '__main__':
     start = date(int(start_str[0]), int(start_str[1]), int(start_str[2]))
     end = date(int(end_str[0]), int(end_str[1]), int(end_str[2]))
 
+    if not os.exists(os.path.join(base_path, output_path)):
+        os.mkdir(os.path.join(base_path, output_path))
+
     df = pd.read_csv(os.path.join(base_path, data_path), encoding = "utf-8", index_col = 0)
     df["date"] = pd.to_datetime(df["date"])
 

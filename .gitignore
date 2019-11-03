@@ -8,3 +8,4 @@ Outputs
 *.log
 *.pickle
 *.html
+*.tar.gz
