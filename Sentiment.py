@@ -11,8 +11,6 @@ export_dir = "Outputs"
 
 # Dict functions
 
-aus_accounts = ["华人瞰世界", "今日悉尼", "微悉尼", "澳洲微报", "悉尼印象", "Australia News", "澳洲中文台"]
-
 base_path = os.path.dirname(os.path.abspath(__file__))
 
 def convert_polar_sentiment(polar):
@@ -89,7 +87,7 @@ def count_generator(counts):
     return sum(counts.values())
 
 # Load Dict
-def get_sentiment(start, end, wanted_word, dbutils):
+def get_sentiment(start, end, wanted_word, dbutils, GET_KEYWORDS):
 
     sent_dict = pd.read_csv(os.path.join(base_path, 'sent_dicts.csv'), error_bad_lines=False)
     sent_dict['convert'] = sent_dict[' 极性'].apply(convert_polar_sentiment)
@@ -114,10 +112,9 @@ def get_sentiment(start, end, wanted_word, dbutils):
 
     for i in range(days+1):
         now = start + timedelta(days = i)
-        articles = dbutils.GetArticles({"time": str(now)})
-        for article in articles:
-            if article["account"] not in aus_accounts:
-                all_articles.append(article)
+        all_articles = dbutils.GetArticles({"time": str(now), "state": "cn"}, ["_id", "content", "segs", "author", "account", "time", "official", "license", "forprofit"])
+        if GET_KEYWORDS:
+            for article in all_articles:
                 if wanted_word in article["content"]:
                     keyword_ids.append(article["_id"])
 
@@ -152,12 +149,6 @@ def get_sentiment(start, end, wanted_word, dbutils):
 
     hr_final.set_index("_id", inplace = True)
     hr_final.to_csv(os.path.join(base_path, export_dir + "/" + str(start) + "~" + str(end) + '_sentiment.csv'))
-    keyword_final = hr_final.loc[keyword_ids]
-    keyword_final.to_csv(os.path.join(base_path, export_dir + "/" + str(start) + "~" + str(end) + '_sentiment_keyword.csv'))
-
-if __name__ == "__main__":
-    start = date(2018, 11, 1)
-    #start  = date(2019, 10, 5)
-    end = date(2019, 10, 6)
-    dbutils = DBUtility()
-    get_sentiment(start, end, "None", dbutils)
+    if GET_KEYWORDS:
+        keyword_final = hr_final.loc[keyword_ids]
+        keyword_final.to_csv(os.path.join(base_path, export_dir + "/" + str(start) + "~" + str(end) + '_sentiment_keyword.csv'))

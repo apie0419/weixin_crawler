@@ -8,7 +8,7 @@ from sklearn.feature_extraction.text import TfidfTransformer, CountVectorizer
 import numpy             as np
 import pandas            as pd
 import matplotlib.pyplot as plt
-import sys, jieba, time, re, csv, os
+import sys, time, re, csv, os
 
 
 ### Setting
@@ -32,51 +32,11 @@ STOPWORDS = list()
 
 WORKERS = cpu_count()
 
-tfidf = None
-
-sn_list = list()
-
-aus_accounts = ["华人瞰世界", "今日悉尼", "微悉尼", "澳洲微报", "悉尼印象", "Australia News", "澳洲中文台"]
-
-aus_articles = list()
 
 base_path = os.path.dirname(os.path.abspath(__file__))
 
-
-def Segmentation(articles_queue, segementations, lock, dbutils) :
-
-	global STOPWORDS
-
-
-	while True :
-		try :
-			article = articles_queue.get()
-		except Exception :
-			break
-
-		dt_list = article["time"].split("-")
-		dt = date(int(dt_list[0]), int(dt_list[1]), int(dt_list[2]))
-		
-
-		content = article["content"]
-		sn = article["_id"]
-		ws = jieba.cut(content.replace("\t", "").replace(" ", ""), cut_all=False)
-		keyword = []
-		for word in ws :
-			if word not in STOPWORDS:
-				keyword.append(word)
-		lock.acquire()
-		segementations.value += 1
-		lock.release()
-		data = {
-			"segs": keyword
-		}
-		dbutils.UpdateArticle(sn, data)
-
 def Calculate_Sim(num, lock, writelock, finish, dbutils) :
 	
-	global tfidf
-	global sn_list
 	global start
 	global end
 
@@ -87,7 +47,7 @@ def Calculate_Sim(num, lock, writelock, finish, dbutils) :
 			finish.value += 1
 			lock.release()
 			break
-		articles = dbutils.GetArticles({"time": str(now)})
+		articles = dbutils.GetArticles({"time": str(now), "state": "cn"}, ["segs", "_id", "content"])
 		num.value += 1
 		lock.release()
 
@@ -196,60 +156,18 @@ def Statistic(df, filename):
 if __name__ == '__main__':
 	lock = Lock()
 	writelock = Lock()
-	tfidf_queue = Queue()
-	articles_queue = Queue()
 	manager = Manager()
 
 	num = Value("i", 0)
 	finish = Value("i", 0)
-	segementations = Value("i", 0)
 
 	dbutils = DBUtility()
-
-	jieba.load_userdict(os.path.join(base_path, "user_dict.txt"))
-
-	print ("Loading Stopwords...")
-
-	with open(os.path.join(base_path, 'stop_word_all.txt'),'r', encoding='utf-8-sig') as stopword:
-		for word in stopword:
-			STOPWORDS.append(word.replace("\n", ""))
 
 	if not os.path.exists(os.path.join(base_path, export_dir)):
 		os.mkdir(os.path.join(base_path, export_dir))
 
 
 	days = (end - start).days
-
-
-	articles = dbutils.GetArticles({"segs": None})
-
-	for article in articles :
-		articles_queue.put(article)
-
-	total = articles_queue.qsize()
-
-	sys.stdout.write('\r')
-	sys.stdout.write("Doing Segmentation... 0%")
-	sys.stdout.flush()
-
-	for _ in range(WORKERS) :
-		t = Process(target = Segmentation, args = (articles_queue, segementations, lock, dbutils))
-		t.daemon = True
-		t.start()
-
-	while True :
-		if total == 0:
-			sys.stdout.write('\r')
-			sys.stdout.write("Doing Segmentation... 100%")
-			sys.stdout.flush()
-			break
-		percent = round(segementations.value/total*100, 2)
-		sys.stdout.write('\r')
-		sys.stdout.write("Doing Segmentation... {}%".format(str(percent)))
-		sys.stdout.flush()
-		time.sleep(0.1)
-		if total == segementations.value:
-			break
 
 	contents = list()
 
@@ -282,9 +200,9 @@ if __name__ == '__main__':
 
 		Statistic(df_keyword, str(start) + "~" + str(end) + "_statistic_keyword")
 
-	get_sentiment(start, end, wanted_word, dbutils)
+	get_sentiment(start, end, wanted_word, dbutils, GET_KEYWORDS)
 
 	os.remove(os.path.join(base_path, "output.csv"))
 	os.remove(os.path.join(base_path, "keywords_output.csv"))
 
-	Send_Mail(start, end)
+	#Send_Mail(start, end)
