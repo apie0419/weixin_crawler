@@ -130,6 +130,21 @@ class Parser() :
                 else :
                     account = soup.select("#js_name")[0].text
 
+                media = 0
+
+                if isShare :
+                    media += len(soup2.select("#js_content")[0].select("img"))
+                    media += len(soup2.select("#js_content")[0].select("mpvoice"))
+                    media += len(soup2.select("#js_content")[0].select("iframe"))
+                    media += len(soup2.select("#js_content")[0].select("video"))
+                    media += len(soup2.select("#js_content")[0].select("audio"))
+                else :
+                    media += len(soup.select("#js_content")[0].select("img"))
+                    media += len(soup.select("#js_content")[0].select("mpvoice"))
+                    media += len(soup.select("#js_content")[0].select("iframe"))
+                    media += len(soup.select("#js_content")[0].select("video"))
+                    media += len(soup.select("#js_content")[0].select("audio"))
+
                 # Save Data
                 comefrom = comefrom.strip().rstrip()
                 account = account.strip().rstrip()
@@ -150,7 +165,8 @@ class Parser() :
                     "license": str(category.iloc[0]["license"]),
                     "forprofit": str(category.iloc[0]["forprofit"]),
                     "segs": segs,
-                    "censor": 0
+                    "censor": 0,
+                    "media": media
                 }
 
                 dbutils.InsertArticle(data)
